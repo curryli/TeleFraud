@@ -1,0 +1,364 @@
+ //////////////////准备阶段///////////////////////////////////////
+    
+   //生成加密后的黑名单卡号表fraudCardsmd5_1
+   create table if not exists fraudCards_1(card string);
+   load data local inpath 'fraudCards_1.txt' into table fraudCards_1; 
+   create table if not exists fraudCardsmd5_1(card string);
+   
+   INSERT OVERWRITE TABLE fraudCardsmd5_1
+   select arlab.hmacmd5(reverse(concat(length(card),card))) from fraudCards_1;   //select card from fraudCards_1;
+   drop table fraudCards_1;
+   
+   //创建可疑交易列表
+ 
+   CREATE TABLE IF NOT EXISTS tele_fraud_1(
+		pri_key                 string,   
+		log_cd                  string,   
+		settle_tp               string,   
+		settle_cycle            string,   
+		block_id                string,   
+		orig_key                string,   
+		related_key             string,   
+		trans_fwd_st            string,   
+		trans_rcv_st            string,   
+		sms_dms_conv_in         string,   
+		fee_in                  string,   
+		cross_dist_in           string,   
+		orig_acpt_sdms_in       string,   
+		tfr_in_in               string,   
+		trans_md                string,   
+		source_region_cd        string,   
+		dest_region_cd          string,   
+		cups_card_in            string,   
+		cups_sig_card_in        string,   
+		card_class              string,   
+		card_attr               string,   
+		sti_in                  string,   
+		trans_proc_in           string,   
+		acq_ins_id_cd           string,   
+		acq_ins_tp              string,   
+		fwd_ins_id_cd           string,   
+		fwd_ins_tp              string,   
+		rcv_ins_id_cd           string,   
+		rcv_ins_tp              string,   
+		iss_ins_id_cd           string,   
+		iss_ins_tp              string,   
+		related_ins_id_cd       string,   
+		related_ins_tp          string,   
+		acpt_ins_id_cd          string,   
+		acpt_ins_tp             string,   
+		pri_acct_no             string,   
+		pri_acct_no_conv        string,   
+		sys_tra_no              string,   
+		sys_tra_no_conv         string,   
+		sw_sys_tra_no           string,   
+		auth_dt                 string,   
+		auth_id_resp_cd         string,   
+		resp_cd1                string,   
+		resp_cd2                string,   
+		resp_cd3                string,   
+		resp_cd4                string,   
+		cu_trans_st             string,   
+		sti_takeout_in          string,   
+		trans_id                string,   
+		trans_tp                string,   
+		trans_chnl              string,   
+		card_media              string,   
+		card_media_proc_md      string,   
+		card_brand              string,   
+		expire_seg              string,   
+		trans_id_conv           string,   
+		settle_dt               string,   
+		settle_mon              string,   
+		settle_d                string,   
+		orig_settle_dt          string,   
+		settle_fwd_ins_id_cd    string,   
+		settle_rcv_ins_id_cd    string,   
+		trans_at                string,   
+		orig_trans_at           string,   
+		trans_conv_rt           string,   
+		trans_curr_cd           string,   
+		cdhd_fee_at             string,   
+		cdhd_fee_conv_rt        string,   
+		cdhd_fee_acct_curr_cd   string,   
+		repl_at                 string,   
+		exp_snd_chnl            string,   
+		confirm_exp_chnl        string,   
+		extend_inf              string,   
+		conn_md                 string,   
+		msg_tp                  string,   
+		msg_tp_conv             string,   
+		card_bin                string,   
+		related_card_bin        string,   
+		trans_proc_cd           string,   
+		trans_proc_cd_conv      string,   
+		tfr_dt_tm               string,   
+		loc_trans_tm            string,   
+		loc_trans_dt            string,   
+		conv_dt                 string,   
+		mchnt_tp                string,   
+		pos_entry_md_cd         string,   
+		card_seq                string,   
+		pos_cond_cd             string,   
+		pos_cond_cd_conv        string,   
+		retri_ref_no            string,   
+		term_id                 string,   
+		term_tp                 string,   
+		mchnt_cd                string,   
+		card_accptr_nm_addr     string,   
+		ic_data                 string,   
+		rsn_cd                  string,   
+		addn_pos_inf            string,   
+		orig_msg_tp             string,   
+		orig_msg_tp_conv        string,   
+		orig_sys_tra_no         string,   
+		orig_sys_tra_no_conv    string,   
+		orig_tfr_dt_tm          string,   
+		related_trans_id        string,   
+		related_trans_chnl      string,   
+		orig_trans_id           string,   
+		orig_trans_id_conv      string,   
+		orig_trans_chnl         string,   
+		orig_card_media         string,   
+		orig_card_media_proc_md string,   
+		tfr_in_acct_no          string,   
+		tfr_out_acct_no         string,   
+		cups_resv               string,   
+		ic_flds                 string,   
+		cups_def_fld            string,   
+		spec_settle_in          string,   
+		settle_trans_id         string,   
+		spec_mcc_in             string,   
+		iss_ds_settle_in        string,   
+		acq_ds_settle_in        string,   
+		settle_bmp              string,   
+		upd_in                  string,   
+		exp_rsn_cd              string,   
+		to_ts                   string,   
+		resnd_num               string,   
+		pri_cycle_no            string,   
+		alt_cycle_no            string,   
+		corr_pri_cycle_no       string,   
+		corr_alt_cycle_no       string,   
+		disc_in                 string,   
+		vfy_rslt                string,   
+		vfy_fee_cd              string,   
+		orig_disc_in            string,   
+		orig_disc_curr_cd       string,   
+		fwd_settle_at           string,   
+		rcv_settle_at           string,   
+		fwd_settle_conv_rt      string,   
+		rcv_settle_conv_rt      string,   
+		fwd_settle_curr_cd      string,   
+		rcv_settle_curr_cd      string,   
+		disc_cd                 string,   
+		allot_cd                string,   
+		total_disc_at           string,   
+		fwd_orig_settle_at      string,   
+		rcv_orig_settle_at      string,   
+		vfy_fee_at              string,   
+		sp_mchnt_cd             string,   
+		acct_ins_id_cd          string,   
+		iss_ins_id_cd1          string,   
+		iss_ins_id_cd2          string,   
+		iss_ins_id_cd3          string,   
+		iss_ins_id_cd4          string,   
+		mchnt_ins_id_cd1        string,   
+		mchnt_ins_id_cd2        string,   
+		mchnt_ins_id_cd3        string,   
+		mchnt_ins_id_cd4        string,   
+		term_ins_id_cd1         string,   
+		term_ins_id_cd2         string,   
+		term_ins_id_cd3         string,   
+		term_ins_id_cd4         string,   
+		term_ins_id_cd5         string,   
+		acpt_cret_disc_at       string,   
+		acpt_debt_disc_at       string,   
+		iss1_cret_disc_at       string,   
+		iss1_debt_disc_at       string,   
+		iss2_cret_disc_at       string,   
+		iss2_debt_disc_at       string,   
+		iss3_cret_disc_at       string,   
+		iss3_debt_disc_at       string,   
+		iss4_cret_disc_at       string,   
+		iss4_debt_disc_at       string,   
+		mchnt1_cret_disc_at     string,   
+		mchnt1_debt_disc_at     string,   
+		mchnt2_cret_disc_at     string,   
+		mchnt2_debt_disc_at     string,   
+		mchnt3_cret_disc_at     string,   
+		mchnt3_debt_disc_at     string,   
+		mchnt4_cret_disc_at     string,   
+		mchnt4_debt_disc_at     string,   
+		term1_cret_disc_at      string,   
+		term1_debt_disc_at      string,   
+		term2_cret_disc_at      string,   
+		term2_debt_disc_at      string,   
+		term3_cret_disc_at      string,   
+		term3_debt_disc_at      string,   
+		term4_cret_disc_at      string,   
+		term4_debt_disc_at      string,   
+		term5_cret_disc_at      string,   
+		term5_debt_disc_at      string,   
+		pay_in                  string,   
+		exp_id                  string,   
+		vou_in                  string,   
+		orig_log_cd             string,   
+		related_log_cd          string,   
+		rec_upd_ts              string,   
+		rec_crt_ts              string,   
+		trans_media             string,   
+		ext_conn_in             string,   
+		ext_cross_region_in     string,   
+		ext_auth_dt             string,   
+		ext_trans_st            string,   
+		ext_trans_attr          string,   
+		ext_trans_at            string,   
+		ext_transmsn_dt_tm      string,   
+		ext_orig_transmsn_dt_tm string,   
+		ext_card_accptr_nm_loc  string,   
+		ext_card_bin            string,   
+		ext_card_bin_id         string,   
+		ext_src_busi_key        string,   
+		ext_card_brand_cd       string,   
+		ext_card_attr_cd        string,   
+		ext_card_prod_cd        string,   
+		ext_card_media_proc_md  string,   
+		ext_status_code         string,   
+		ext_cups_resv_1_5       string,   
+		ext_cups_resv_6_9       string,   
+		ext_cups_resv_10_49     string,   
+		ext_cups_resv_50_102    string,   
+		ext_busi_dt             string,   
+		ext_extend_region_in    string,   
+		ext_eci_flag            string,   
+		ext_extend_inf_4_12     string,   
+		ext_extend_inf_13       string,   
+		ext_extend_inf_14_19    string,   
+		ext_extend_inf_20       string,   
+		ext_extend_inf_21       string,   
+		ext_extend_inf_22       string,   
+		ext_extend_inf_23_27    string,   
+		ext_extend_inf_28       string,   
+		ext_token_no            string,   
+		ext_extend_inf_51_54    string,   
+		ext_extend_inf_55_56    string,   
+		ext_vfy_fee_cd_1_35     string,   
+		ext_vfy_fee_cd_36_53    string,   
+		ext_vfy_fee_cd_54_72    string,   
+		ext_vfy_fee_cd_73_74    string,   
+		ext_vfy_fee_cd_75_76    string,   
+		ext_vfy_fee_cd_77_87    string,   
+		ext_total_card_prod     string,   
+		ext_ma_fwd_ins_id_cd    string,   
+		ext_ma_industry_ins_id_cd       string,   
+		ext_ma_ext_trans_tp     string,   
+		ext_acq_ins_id_cd       string,   
+		ext_hce_prod_nm         string,   
+		ext_mchnt_tp            string,   
+		ext_cups_disc_at        string,   
+		ext_iss_disc_at         string,   
+		ext_spec_disc_tp        string,   
+		ext_spec_disc_lvl       string,   
+		ext_hce_prod_in         string,   
+		ext_touch_tp            string,   
+		ext_carrier_tp          string,   
+		ext_nopwd_petty_in      string,   
+		ext_log_id              string,   
+		ext_white_mchnt_in      string,   
+		ext_up_cloud_app_in     string,   
+		pdate                   string)
+ 
+ //////////////////准备阶段/////////////////////////////////////// 
+ 
+ 
+ 
+ 
+ 
+ 
+   
+//////////////////////////////////////第0轮	////////////////////////////////////////////////////   
+INSERT OVERWRITE TABLE tele_fraud_1
+select t1.* from tbl_common_his_trans t1
+left semi join fraudCardsmd5_1 t2
+on t1.tfr_in_acct_no=t2.card
+where t1.pdate>='20170301' and t1.pdate<='20170431'
+union all
+select t1.* from tbl_common_his_trans t1
+left semi join fraudCardsmd5_1 t2
+on t1.tfr_out_acct_no=t2.card
+where t1.pdate>='20170301' and t1.pdate<='20170431'
+union all
+select t1.* from tbl_common_his_trans t1
+left semi join fraudCardsmd5_1 t2
+on t1.pri_acct_no_conv=t2.card
+where t1.pdate>='20170301' and t1.pdate<='20170431';
+   
+	
+//统计所有转账交易
+create table if not exists tele_staticInOut0_1(
+tfr_in_acct_no string,
+tfr_out_acct_no string,
+amount string)
+ROW FORMAT DELIMITED FIELDS
+TERMINATED BY '\t';
+  
+insert overwrite table tele_staticInOut0_1
+select tfr_in_acct_no,tfr_out_acct_no, sum(trans_at) as amount
+from tele_fraud_1 where trans_id='S33'
+group by tfr_in_acct_no,tfr_out_acct_no;
+		
+//统计所有转账卡号	
+create table if not exists ini_cards_1(card string);
+
+insert overwrite table ini_cards_1
+select distinct card from(
+select tfr_in_acct_no as card from tele_fraud_1 where trans_id='S33'
+union all
+select tfr_out_acct_no as card from tele_fraud_1 where trans_id='S33'
+)temp;
+
+//////////////////////////////////////第1轮	////////////////////////////////////////////////////	
+create table if not exists tele_InOutRound1_1(tfr_in_acct_no string, tfr_out_acct_no string, trans_at string);
+
+insert overwrite table tele_InOutRound1_1
+select t1.tfr_in_acct_no, t1.tfr_out_acct_no, t1.trans_at
+from tbl_common_his_trans t1
+left semi join ini_cards_1 t2
+on t1.tfr_in_acct_no = t2.card
+where t1.trans_id='S33' and t1.pdate>='20170301' and t1.pdate<='20170431'
+union all
+select t1.tfr_in_acct_no, t1.tfr_out_acct_no, t1.trans_at
+from tbl_common_his_trans t1
+left semi join ini_cards_1 t2
+on t1.tfr_out_acct_no = t2.card
+where t1.trans_id='S33' and t1.pdate>='20170301' and t1.pdate<='20170431';
+
+create table if not exists tele_staticRound1_1(
+tfr_in_acct_no string,
+tfr_out_acct_no string,
+amount string)
+ROW FORMAT DELIMITED FIELDS
+TERMINATED BY '\t';
+
+insert overwrite table tele_staticRound1_1
+select tfr_in_acct_no,tfr_out_acct_no, sum(trans_at) as amount
+from tele_InOutRound1_1
+group by tfr_in_acct_no,tfr_out_acct_no;
+
+
+
+create table if not exists sus1_cards_1(card string);
+insert overwrite table sus1_cards_1
+select distinct card from(
+select tfr_in_acct_no as card from tele_InOutRound1_1
+union all
+select tfr_out_acct_no as card from tele_InOutRound1_1
+)temp;
+
+select count(distinct card) from sus1_cards_1;
+ 
+  }
+   
+  
+}
