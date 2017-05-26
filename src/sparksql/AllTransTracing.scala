@@ -19,8 +19,8 @@ object AllTransTracing {
     Logger.getLogger("parse").setLevel(Level.ERROR);
  
        //require(args.length == 6)
-    val beginDate = "20160828"
-    val endDate = "20160828"
+    val beginDate = "20170301"
+    val endDate = "20170415"
     val tableName= "tbl_common_his_trans"
     val srcColumn = "tfr_in_acct_no"
     val destColumn = "tfr_out_acct_no"
@@ -37,21 +37,21 @@ object AllTransTracing {
 
     
     hc.sql(s"set hive.input.format=org.apache.hadoop.hive.ql.io.CombineHiveInputFormat" +
-           s"set mapred.max.split.size=10240000000" +
+           //s"set mapred.max.split.size=10240000000" +
            s"set mapred.min.split.size.per.node=10240000000" +
            s"set mapred.min.split.size.per.rack=10240000000" +
            s"set mapreduce.jobtracker.split.metainfo.maxsize = -1" +
-           s"set mapreduce.job.queuename=root.spark")
+           s"set mapreduce.job.queuename=root.queue2")
            
-    //val seedList = sc.textFile("xrli/TeleFraud/fraudCards_1.txt").collect() 
+    val seedList = sc.textFile("xrli/TeleFraud/fraudCards_1.txt").collect() 
     
     
-    val seedList = Array("8127fd4b2286c136abef77fb18100ef0",
-                         "777d85a415bed7576491de0938b33c76",
-                         "8e6fb529da1d75468846d9feabe0293b",
-                         "73502834a5f0524f576b49cf37d75bf1",
-                         "538d8a8e4314eb5cfe539e3935a77223",
-                         "c054034ec59c747c481e170622c93bb8")
+//    val seedList = Array("8127fd4b2286c136abef77fb18100ef0",
+//                         "777d85a415bed7576491de0938b33c76",
+//                         "8e6fb529da1d75468846d9feabe0293b",
+//                         "73502834a5f0524f576b49cf37d75bf1",
+//                         "538d8a8e4314eb5cfe539e3935a77223",
+//                         "c054034ec59c747c481e170622c93bb8")
     
     antiSearch(hc,tableName,beginDate,endDate,srcColumn,destColumn,seedList)
     
@@ -59,19 +59,29 @@ object AllTransTracing {
   
   
     def antiSearch(hc: HiveContext, tableName: String, beginDate: String, endDate: String, srcColumn: String, destColumn: String, seedList: Array[String]) = {
-      val maxitertimes =3
+      val maxitertimes =2
       var transferList = seedList
       var currentSrcDataSize = transferList.length.toLong
       var destDataSize = 0L
       
       var lastSrcDataSize=0L
 
-      var data = hc.sql(s"select pri_acct_no_conv, trans_id, trans_at, pdate, loc_trans_tm, acpt_ins_id_cd, trans_md, cross_dist_in,trans_id, " +
+      val startTime = System.currentTimeMillis(); 
+//      var data = hc.sql(s"select pri_acct_no_conv, trans_id, trans_at, pdate, loc_trans_tm, acpt_ins_id_cd, trans_md, cross_dist_in,trans_id, " +
+//        s"trim($srcColumn)  as $srcColumn," +
+//        s"trim($destColumn) as $destColumn " +
+//        s"from $tableName " +
+//        s"where pdate>=$beginDate and pdate<=$endDate").repartition(2000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
+  
+      var data = hc.sql(s"select pri_acct_no_conv, trans_id, trans_at, pdate, loc_trans_tm, acpt_ins_id_cd, trans_md, cross_dist_in, " +
         s"trim($srcColumn)  as $srcColumn," +
         s"trim($destColumn) as $destColumn " +
         s"from $tableName " +
-        s"where pdate>=$beginDate and pdate<=$endDate").repartition(100).cache()
+        s"where (pdate>=$beginDate and pdate<=$endDate) or (pdate>=20161210 and pdate<=20161225)").repartition(3000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
         
+        
+      println("SQL done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
+      
       var transferCards_tmp=null 
       var seedData=transferList.mkString("','")
       println(seedData.toString())
@@ -81,30 +91,34 @@ object AllTransTracing {
        i=i+1
        println("Start iteration " + i)
        //var cosumeData_tmp= data.filter(s"pri_acct_no_conv in (\'${seedData}\') ")
+       
        //https://stackoverflow.com/questions/36562678/sparks-column-isin-function-does-not-take-list
-       var cosumeData_tmp= data.filter(data("pri_acct_no_conv").isin(transferList : _*))
+       var cosumeData_tmp= data.filter(data("trans_id").!==("S33") &&  data("pri_acct_no_conv").isin(transferList : _*))
             
        println(s"cosumeData_tmp Count:\t"+cosumeData_tmp.count)
        cosumeData_tmp.show(100)
-       
-       
-       var a= data.filter(data(srcColumn).isin(transferList : _*) ||  data(destColumn).isin(transferList : _*))                
-       println(s"a Count:\t"+a.count)
-       a.show(100)
-       
-       
-       var transferData_tmp= data.filter(data("trans_id")==="S33" && 
-           (data(srcColumn).isin(transferList : _*) ||  data(destColumn).isin(transferList : _*)))
+       cosumeData_tmp.saveAsTable("TeleFraud_consume_zy")
+       println("cosumeData_tmp done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
+  
+       var transferData_tmp= data.filter(data("trans_id")==="S33"
+           && (data(srcColumn).isin(transferList : _*) ||  data(destColumn).isin(transferList : _*))
+//           && data(srcColumn).isNotNull && data(destColumn).isNotNull
+//           && data(srcColumn).!==("") && data(destColumn).!==("")
+       ) //.persist(StorageLevel.MEMORY_AND_DISK_SER) 加了就慢了
                                    
        println(s"transferData_tmp Count:\t"+transferData_tmp.count)
        transferData_tmp.show(100)
- 
-       var transferCards_tmp = transferData_tmp.select(s"${srcColumn}",s"${destColumn}").distinct()
-              
-       var dataFrame1=transferCards_tmp.select(s"${srcColumn}").distinct()
-       var dataFrame2=transferCards_tmp.select(s"${destColumn}").distinct() 
-       var cardRdd_transfer= dataFrame1.unionAll(dataFrame2).distinct().map { r => r.getString(0) }
+       println("transferData_tmp filter done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
        
+       //var transferCards_tmp = transferData_tmp.select(s"${srcColumn}",s"${destColumn}")     //.distinct()
+              
+       var dataFrame1=transferData_tmp.select(s"${srcColumn}").distinct()
+       var dataFrame2=transferData_tmp.select(s"${destColumn}").distinct() 
+       //var cardRdd_transfer= dataFrame1.unionAll(dataFrame2).distinct().rdd.map {_.getString(0)}.persist(StorageLevel.MEMORY_AND_DISK_SER)
+       var cardRdd_transfer= dataFrame1.unionAll(dataFrame2).distinct().map {_.getString(0)}//.persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+   
+       println("cardRdd_transfer done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
        
        lastSrcDataSize=currentSrcDataSize
        currentSrcDataSize=cardRdd_transfer.count()
@@ -113,6 +127,7 @@ object AllTransTracing {
        println(seedData)
        
        transferList = cardRdd_transfer.collect()
+       println("New transferList done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
       }
       
       data.unpersist(blocking=false)
