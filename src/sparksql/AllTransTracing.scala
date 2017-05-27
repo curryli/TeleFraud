@@ -7,6 +7,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.sql.DataFrame
 
 
 object AllTransTracing {
@@ -19,8 +20,8 @@ object AllTransTracing {
     Logger.getLogger("parse").setLevel(Level.ERROR);
  
        //require(args.length == 6)
-    val beginDate = "20170301"
-    val endDate = "20170415"
+    val beginDate = "20160701"
+    val endDate = "20161131"
     val tableName= "tbl_common_his_trans"
     val srcColumn = "tfr_in_acct_no"
     val destColumn = "tfr_out_acct_no"
@@ -43,8 +44,9 @@ object AllTransTracing {
            s"set mapreduce.jobtracker.split.metainfo.maxsize = -1" +
            s"set mapreduce.job.queuename=root.queue2")
            
-    val seedList = sc.textFile("xrli/TeleFraud/fraudCards_1.txt").collect() 
-    
+   // val seedList = sc.textFile("xrli/TeleFraud/fraudCards_1.txt").collect() 
+   // val seedList = sc.textFile("xrli/TeleFraud/fraudcardsmd5_2.txt").collect() 
+    val seedList = sc.textFile("xrli/TeleFraud/seedcards.txt").collect()        
     
 //    val seedList = Array("8127fd4b2286c136abef77fb18100ef0",
 //                         "777d85a415bed7576491de0938b33c76",
@@ -59,7 +61,7 @@ object AllTransTracing {
   
   
     def antiSearch(hc: HiveContext, tableName: String, beginDate: String, endDate: String, srcColumn: String, destColumn: String, seedList: Array[String]) = {
-      val maxitertimes =2
+      val maxitertimes =4
       var transferList = seedList
       var currentSrcDataSize = transferList.length.toLong
       var destDataSize = 0L
@@ -73,12 +75,19 @@ object AllTransTracing {
 //        s"from $tableName " +
 //        s"where pdate>=$beginDate and pdate<=$endDate").repartition(2000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
   
+//      var data = hc.sql(s"select pri_acct_no_conv, trans_id, trans_at, pdate, loc_trans_tm, acpt_ins_id_cd, trans_md, cross_dist_in, " +
+//        s"trim($srcColumn)  as $srcColumn," +
+//        s"trim($destColumn) as $destColumn " +
+//        s"from $tableName " +
+//        s"where (pdate>=$beginDate and pdate<=$endDate) or (pdate>=20161210 and pdate<=20161225)").repartition(3000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
+
+      
       var data = hc.sql(s"select pri_acct_no_conv, trans_id, trans_at, pdate, loc_trans_tm, acpt_ins_id_cd, trans_md, cross_dist_in, " +
         s"trim($srcColumn)  as $srcColumn," +
         s"trim($destColumn) as $destColumn " +
         s"from $tableName " +
-        s"where (pdate>=$beginDate and pdate<=$endDate) or (pdate>=20161210 and pdate<=20161225)").repartition(3000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
-        
+        s"where pdate>=$beginDate and pdate<=$endDate ").repartition(17000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
+         
         
       println("SQL done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
       
@@ -87,20 +96,37 @@ object AllTransTracing {
       println(seedData.toString())
       var i=0
       
+      var cosumeData_tmp: DataFrame = null
+      var transferData_tmp: DataFrame = null
+
       while(i<maxitertimes && lastSrcDataSize!=currentSrcDataSize){
        i=i+1
        println("Start iteration " + i)
        //var cosumeData_tmp= data.filter(s"pri_acct_no_conv in (\'${seedData}\') ")
        
        //https://stackoverflow.com/questions/36562678/sparks-column-isin-function-does-not-take-list
-       var cosumeData_tmp= data.filter(data("trans_id").!==("S33") &&  data("pri_acct_no_conv").isin(transferList : _*))
+       cosumeData_tmp= data.filter(data("trans_id").!==("S33") &&  data("pri_acct_no_conv").isin(transferList : _*))
             
-       println(s"cosumeData_tmp Count:\t"+cosumeData_tmp.count)
-       cosumeData_tmp.show(100)
-       cosumeData_tmp.saveAsTable("TeleFraud_consume_zy")
+       var cosume_count = cosumeData_tmp.count
+       println(s"cosumeData_tmp Count:\t" + cosume_count)
+       
+       if(cosume_count<100)
+         cosumeData_tmp.show(100)
+       else{
+         
+         cosumeData_tmp.show(50)
+//         cosumeData_tmp.saveAsTable("TeleFraud_consume_hanhao")
+//         var tmp_file = "TeleFraud_hanhao/consume_" + i 
+//         hc.sql(s"insert overwrite local directory $tmp_file " +
+//              s"row format delimited "+
+//              s"fields terminated by '\t' "+
+//              s"select * from TeleFraud_consume_zy ")
+//         hc.sql("drop table TeleFraud_consume_hanhao")
+       }
+       
        println("cosumeData_tmp done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
   
-       var transferData_tmp= data.filter(data("trans_id")==="S33"
+       transferData_tmp= data.filter(data("trans_id")==="S33"
            && (data(srcColumn).isin(transferList : _*) ||  data(destColumn).isin(transferList : _*))
 //           && data(srcColumn).isNotNull && data(destColumn).isNotNull
 //           && data(srcColumn).!==("") && data(destColumn).!==("")
@@ -129,6 +155,9 @@ object AllTransTracing {
        transferList = cardRdd_transfer.collect()
        println("New transferList done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
       }
+      
+      cosumeData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/cosumeData_0711")
+      transferData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/transferData_0711")
       
       data.unpersist(blocking=false)
     }
