@@ -9,7 +9,7 @@ import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.storage.StorageLevel
 
 
-object CardsTransferTracing {
+object CardsTransferTest {
 
   def main(args: Array[String]): Unit = {
 

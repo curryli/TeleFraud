@@ -10,7 +10,7 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 
 
-object Test_JT {
+object Test {
 
   def main(args: Array[String]): Unit = {
 

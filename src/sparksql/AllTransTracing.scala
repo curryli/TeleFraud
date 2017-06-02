@@ -21,7 +21,7 @@ object AllTransTracing {
  
        //require(args.length == 6)
     val beginDate = "20160701"
-    val endDate = "20161131"
+    val endDate = "20160731"
     val tableName= "tbl_common_his_trans"
     val srcColumn = "tfr_in_acct_no"
     val destColumn = "tfr_out_acct_no"
@@ -61,7 +61,7 @@ object AllTransTracing {
   
   
     def antiSearch(hc: HiveContext, tableName: String, beginDate: String, endDate: String, srcColumn: String, destColumn: String, seedList: Array[String]) = {
-      val maxitertimes =4
+      val maxitertimes =5
       var transferList = seedList
       var currentSrcDataSize = transferList.length.toLong
       var destDataSize = 0L
@@ -86,7 +86,7 @@ object AllTransTracing {
         s"trim($srcColumn)  as $srcColumn," +
         s"trim($destColumn) as $destColumn " +
         s"from $tableName " +
-        s"where pdate>=$beginDate and pdate<=$endDate ").repartition(17000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
+        s"where pdate>=$beginDate and pdate<=$endDate ").repartition(10000).persist(StorageLevel.MEMORY_AND_DISK_SER)    //.cache
          
         
       println("SQL done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
@@ -94,8 +94,8 @@ object AllTransTracing {
       var transferCards_tmp=null 
       var seedData=transferList.mkString("','")
       println(seedData.toString())
-      var i=0
       
+      var i=0
       var cosumeData_tmp: DataFrame = null
       var transferData_tmp: DataFrame = null
 
@@ -109,12 +109,7 @@ object AllTransTracing {
             
        var cosume_count = cosumeData_tmp.count
        println(s"cosumeData_tmp Count:\t" + cosume_count)
-       
-       if(cosume_count<100)
-         cosumeData_tmp.show(100)
-       else{
-         
-         cosumeData_tmp.show(50)
+        
 //         cosumeData_tmp.saveAsTable("TeleFraud_consume_hanhao")
 //         var tmp_file = "TeleFraud_hanhao/consume_" + i 
 //         hc.sql(s"insert overwrite local directory $tmp_file " +
@@ -122,18 +117,18 @@ object AllTransTracing {
 //              s"fields terminated by '\t' "+
 //              s"select * from TeleFraud_consume_zy ")
 //         hc.sql("drop table TeleFraud_consume_hanhao")
-       }
-       
+        
        println("cosumeData_tmp done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
+       cosumeData_tmp.show(50)
   
-       transferData_tmp= data.filter(data("trans_id")==="S33"
-           && (data(srcColumn).isin(transferList : _*) ||  data(destColumn).isin(transferList : _*))
+       transferData_tmp= data.filter(data("tfr_in_acct_no").isin(transferList : _*) or data("tfr_out_acct_no").isin(transferList : _*))
+       //filter(data("trans_id")==="S33")
 //           && data(srcColumn).isNotNull && data(destColumn).isNotNull
 //           && data(srcColumn).!==("") && data(destColumn).!==("")
-       ) //.persist(StorageLevel.MEMORY_AND_DISK_SER) 加了就慢了
+         //.persist(StorageLevel.MEMORY_AND_DISK_SER) 加了就慢了
                                    
        println(s"transferData_tmp Count:\t"+transferData_tmp.count)
-       transferData_tmp.show(100)
+       transferData_tmp.show(50)
        println("transferData_tmp filter done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
        
        //var transferCards_tmp = transferData_tmp.select(s"${srcColumn}",s"${destColumn}")     //.distinct()
@@ -156,8 +151,8 @@ object AllTransTracing {
        println("New transferList done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
       }
       
-      cosumeData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/cosumeData_0711")
-      transferData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/transferData_0711")
+      cosumeData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/cosumeData_1607")
+      transferData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/transferData_1607")
       
       data.unpersist(blocking=false)
     }
