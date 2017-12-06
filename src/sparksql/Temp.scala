@@ -10,7 +10,7 @@ import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.DataFrame
 
 
-object AllTransTracing {
+object Temp {
 
   def main(args: Array[String]): Unit = {
 
@@ -61,7 +61,7 @@ object AllTransTracing {
   
   
     def antiSearch(hc: HiveContext, tableName: String, beginDate: String, endDate: String, srcColumn: String, destColumn: String, seedList: Array[String]) = {
-      val maxitertimes =5
+      val maxitertimes =4
       var transferList = seedList
       var currentSrcDataSize = transferList.length.toLong
       var destDataSize = 0L
@@ -105,7 +105,7 @@ object AllTransTracing {
        //var cosumeData_tmp= data.filter(s"pri_acct_no_conv in (\'${seedData}\') ")
        
        //https://stackoverflow.com/questions/36562678/sparks-column-isin-function-does-not-take-list
-       cosumeData_tmp= data.filter(data("trans_id").!==("S25") &&  data("trans_id").!==("S33") && data("pri_acct_no_conv").isin(transferList : _*))
+       cosumeData_tmp= data.filter(data("pri_acct_no_conv").isin(transferList : _*))
             
        var cosume_count = cosumeData_tmp.count
        println(s"cosumeData_tmp Count:\t" + cosume_count)
@@ -149,10 +149,14 @@ object AllTransTracing {
        
        transferList = cardRdd_transfer.collect()
        println("New transferList done in " + (System.currentTimeMillis()-startTime)/(1000*60) + " minutes." )  
+       
+       var cosume_file = "xrli/TeleFraud/cosumeData_1607_round" + i 
+       var trans_file = "xrli/TeleFraud/transData_1607_round" + i 
+       cosumeData_tmp.rdd.saveAsTextFile(cosume_file)
+       transferData_tmp.rdd.saveAsTextFile(trans_file)
       }
       
-      cosumeData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/cosumeData_1608")
-      transferData_tmp.rdd.saveAsTextFile("xrli/TeleFraud/transferData_1608")
+      
       
       data.unpersist(blocking=false)
     }
